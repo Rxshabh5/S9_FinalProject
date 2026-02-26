@@ -7,7 +7,7 @@ export function useAutosave(saveFn, deps, delay = 1600) {
   const isFirst = useRef(true)
 
   useEffect(() => {
-    // Skip on initial mount
+    
     if (isFirst.current) { isFirst.current = false; return }
     if (deps.every(d => !d)) return
 
@@ -25,13 +25,13 @@ export function useAutosave(saveFn, deps, delay = 1600) {
     }, delay)
 
     return () => clearTimeout(timer.current)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, deps)
 
   return status
 }
 
-// Word/reading time calculator
+
 export function useTextStats(body) {
   const wordCount = body.trim() ? body.trim().split(/\s+/).length : 0
   const readTime  = Math.max(1, Math.ceil(wordCount / 200))
@@ -39,7 +39,7 @@ export function useTextStats(body) {
   return { wordCount, readTime, charCount }
 }
 
-// Debounce value
+
 export function useDebounce(value, delay = 300) {
   const [debounced, setDebounced] = useState(value)
   useEffect(() => {
