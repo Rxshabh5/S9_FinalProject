@@ -25,6 +25,7 @@ function AppShell() {
           <Route path="/published" element={<PublishedPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/profile"   element={<ProfilePage />} />
+          <Route path="/profile/:profileId" element={<ProfilePage />} />
         </Routes>
       </main>
       <ToastContainer />

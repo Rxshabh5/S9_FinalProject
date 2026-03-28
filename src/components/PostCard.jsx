@@ -24,14 +24,21 @@ function ActionButton({ icon: Icon, count, active, activeClass, onClick, title, 
 export default function PostCard({ post, compact = false, extraActions }) {
   const { dispatch, addToast, setEditingPost, getCommentsForPost } = useApp()
   const navigate = useNavigate()
-  const [confirming,     setConfirming]     = useState(false)
-  const [showPreview,    setShowPreview]    = useState(false)
-  const [showComments,   setShowComments]   = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
+  const [showComments, setShowComments] = useState(false)
 
   const [c1, c2] = AVATAR_GRADIENTS[post.avatarIdx ?? 0]
   const commentCount = getCommentsForPost(post.id).length
+  const canEdit = post.canEdit !== false
 
-  const handleEdit = e => {
+  const handleOpenAuthor = (e) => {
+    e.stopPropagation()
+    if (post.authorId) navigate(`/profile/${post.authorId}`)
+    else navigate('/profile')
+  }
+
+  const handleEdit = (e) => {
     e.stopPropagation()
     setEditingPost(post)
     navigate('/editor')
@@ -44,7 +51,7 @@ export default function PostCard({ post, compact = false, extraActions }) {
 
   const handleRepost = () => {
     dispatch({ type: 'TOGGLE_REPOST', id: post.id })
-    if (!post.reposted) addToast('Reposted to your timeline! 🔁', 'success')
+    if (!post.reposted) addToast('Reposted to your timeline!', 'success')
     else addToast('Repost removed.', 'info')
   }
 
@@ -63,21 +70,29 @@ export default function PostCard({ post, compact = false, extraActions }) {
         }} />
 
         <div className="post-header">
-          <div
+          <button
+            type="button"
             className="post-avatar"
-            style={{ background: `linear-gradient(135deg, ${c1}, ${c2})` }}
+            style={{ background: `linear-gradient(135deg, ${c1}, ${c2})`, border: 'none', cursor: 'pointer' }}
+            onClick={handleOpenAuthor}
           >
             {post.author[0]}
-          </div>
+          </button>
           <div className="post-meta">
             <div className="post-author">
-              {post.author}
+              <button
+                type="button"
+                onClick={handleOpenAuthor}
+                style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', fontWeight: 700 }}
+              >
+                {post.author}
+              </button>
               <span className="post-handle">{post.authorHandle}</span>
-              <span className="post-dot">·</span>
+              <span className="post-dot">&middot;</span>
               <span style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 400 }}>{post.createdAt}</span>
             </div>
             <div className="post-time">
-              <span className="meta-chip">📖 {post.readTime}m</span>
+              <span className="meta-chip">Read {post.readTime}m</span>
               <span className="meta-chip">{post.wordCount.toLocaleString()}w</span>
               {post.category && <span className="meta-chip">{post.category}</span>}
             </div>
@@ -89,7 +104,7 @@ export default function PostCard({ post, compact = false, extraActions }) {
           <div className="post-title">{post.title}</div>
           <div className="post-excerpt">
             {post.body.substring(0, compact ? 100 : 180)}
-            {post.body.length > (compact ? 100 : 180) && '…'}
+            {post.body.length > (compact ? 100 : 180) && '...'}
           </div>
         </div>
 
@@ -122,7 +137,10 @@ export default function PostCard({ post, compact = false, extraActions }) {
           />
           <ActionButton
             icon={Bookmark} count={post.bookmarks} active={post.bookmarked} activeClass="active-bookmark" filled
-            onClick={() => { dispatch({ type: 'TOGGLE_BOOKMARK', id: post.id }); if (!post.bookmarked) addToast('Saved to bookmarks!', 'success') }}
+            onClick={() => {
+              dispatch({ type: 'TOGGLE_BOOKMARK', id: post.id })
+              if (!post.bookmarked) addToast('Saved to bookmarks!', 'success')
+            }}
             title="Bookmark"
           />
 
@@ -130,12 +148,16 @@ export default function PostCard({ post, compact = false, extraActions }) {
             <button className="btn btn-ghost btn-xs" onClick={e => { e.stopPropagation(); setShowPreview(true) }}>
               <Eye size={11} /> Read
             </button>
-            <button className="btn btn-ghost btn-xs" onClick={handleEdit}>
-              <Edit2 size={11} /> Edit
-            </button>
-            <button className="btn btn-danger btn-xs" onClick={e => { e.stopPropagation(); setConfirming(true) }}>
-              <Trash2 size={11} />
-            </button>
+            {canEdit && (
+              <>
+                <button className="btn btn-ghost btn-xs" onClick={handleEdit}>
+                  <Edit2 size={11} /> Edit
+                </button>
+                <button className="btn btn-danger btn-xs" onClick={e => { e.stopPropagation(); setConfirming(true) }}>
+                  <Trash2 size={11} />
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -144,15 +166,15 @@ export default function PostCard({ post, compact = false, extraActions }) {
 
       {confirming && (
         <ConfirmModal
-          icon="🗑️"
+          icon="Delete"
           title="Delete this post?"
-          message={`"${post.title.substring(0, 50)}${post.title.length > 50 ? '…' : ''}" will be permanently deleted.`}
+          message={`"${post.title.substring(0, 50)}${post.title.length > 50 ? '...' : ''}" will be permanently deleted.`}
           onConfirm={() => { handleDelete(); setConfirming(false) }}
           onCancel={() => setConfirming(false)}
         />
       )}
-      {showPreview    && <PreviewModal    post={post} onClose={() => setShowPreview(false)} />}
-      {showComments   && <CommentsModal   post={post} onClose={() => setShowComments(false)} />}
+      {showPreview && <PreviewModal post={post} onClose={() => setShowPreview(false)} />}
+      {showComments && <CommentsModal post={post} onClose={() => setShowComments(false)} />}
     </>
   )
 }

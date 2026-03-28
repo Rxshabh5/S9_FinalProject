@@ -4,7 +4,7 @@ import { profileApi } from '../api/profile'
 export const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
 
-// Demo users database
+
 const DEMO_USERS = [
   {
     id: 'user_1',
@@ -72,7 +72,7 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => {
     setAuthError('')
-    // Simulate API delay
+    
     await new Promise(r => setTimeout(r, 900))
     const found = DEMO_USERS.find(u => u.email === email && u.password === password)
     if (found) {
@@ -83,7 +83,7 @@ export function AuthProvider({ children }) {
     }
     setAuthError('Invalid email or password. Try rishabh@forge.io / password123')
     return { ok: false }
-  }, [])
+  }, [refreshSocialCounts])
 
   const register = useCallback(async (name, email, password) => {
     setAuthError('')

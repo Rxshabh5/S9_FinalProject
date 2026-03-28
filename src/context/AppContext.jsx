@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useCallback, useState, useEffect } from 'react'
+import { createContext, useContext, useReducer, useCallback, useState } from 'react'
 import { INITIAL_POSTS, INITIAL_COMMENTS } from '../data/posts'
 import { postsApi } from '../api/posts'
 
@@ -7,6 +7,17 @@ export const useApp = () => useContext(AppContext)
 
 function postsReducer(state, action) {
   switch (action.type) {
+    case 'APPEND_POSTS': {
+      const seen = new Set(state.map((post) => post.id))
+      const merged = [...state]
+      action.posts.forEach((post) => {
+        if (!seen.has(post.id)) {
+          seen.add(post.id)
+          merged.push(post)
+        }
+      })
+      return merged
+    }
     case 'ADD_POST':      return [action.post, ...state]
     case 'UPDATE_POST':   return state.map(p => p.id === action.id ? { ...p, ...action.updates } : p)
     case 'DELETE_POST':   return state.filter(p => p.id !== action.id)
@@ -37,6 +48,10 @@ export function AppProvider({ children }) {
   const [toasts,       setToasts]      = useState([])
   const [editingPost,  setEditingPost] = useState(null)
   const [activePostId, setActivePostId]= useState(null)
+  const [loadingMorePosts, setLoadingMorePosts] = useState(false)
+  const [remotePostsLoaded, setRemotePostsLoaded] = useState(0)
+  const [remoteTotalPosts, setRemoteTotalPosts] = useState(null)
+  const [postsError, setPostsError] = useState('')
 
   const addToast = useCallback((message, type = 'info') => {
     const id = Date.now() + Math.random()
@@ -46,6 +61,28 @@ export function AppProvider({ children }) {
 
   const removeToast = useCallback((id) => setToasts(prev => prev.filter(t => t.id !== id)), [])
   const getCommentsForPost = useCallback((postId) => comments.filter(c => c.postId === postId), [comments])
+
+  const loadMorePosts = useCallback(async () => {
+    if (loadingMorePosts) return { ok: false, reason: 'busy' }
+
+    setLoadingMorePosts(true)
+    setPostsError('')
+
+    try {
+      const response = await postsApi.getPosts({ skip: remotePostsLoaded, limit: 10 })
+      dispatch({ type: 'APPEND_POSTS', posts: response.posts })
+      setRemotePostsLoaded((prev) => prev + response.posts.length)
+      setRemoteTotalPosts(response.total ?? null)
+      return { ok: true, count: response.posts.length }
+    } catch {
+      setPostsError('We could not load more posts right now.')
+      return { ok: false }
+    } finally {
+      setLoadingMorePosts(false)
+    }
+  }, [loadingMorePosts, remotePostsLoaded])
+
+  const hasMorePosts = remoteTotalPosts === null || remotePostsLoaded < remoteTotalPosts
 
   const drafts    = posts.filter(p => p.status === 'draft')
   const review    = posts.filter(p => p.status === 'review')
@@ -64,6 +101,7 @@ export function AppProvider({ children }) {
       toasts, addToast, removeToast,
       editingPost, setEditingPost,
       activePostId, setActivePostId,
+      loadMorePosts, loadingMorePosts, hasMorePosts, postsError,
     }}>
       {children}
     </AppContext.Provider>
